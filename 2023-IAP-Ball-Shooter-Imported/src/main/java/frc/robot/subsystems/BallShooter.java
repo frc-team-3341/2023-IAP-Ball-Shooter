@@ -20,9 +20,10 @@ public class BallShooter extends SubsystemBase {
   private BangBangController bang = new BangBangController();
   public final WPI_TalonSRX flywheel = new WPI_TalonSRX(Constants.BallHandlerPorts.flywheelPort);
   public final WPI_TalonSRX feedwheel = new WPI_TalonSRX(Constants.BallHandlerPorts.FeedwheelPort);
-  public double ticks2RPM = 4096/10/60;
+  public double ticks2RPS = 4096/10;
   public double setPoint;
   private SimpleMotorFeedforward feedF = new SimpleMotorFeedforward(feedForwardConsts.kS, feedForwardConsts.kV, feedForwardConsts.kA);
+  private boolean onOrOff;
 
   /** Creates a new BallShooter. */
   public BallShooter() {
@@ -34,9 +35,9 @@ public class BallShooter extends SubsystemBase {
    flywheel.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Absolute);
     // Use addRequirements() here to declare subsystem dependencies.
   }
-  
-  public double getRPM(){
-    return flywheel.getSelectedSensorVelocity()/ticks2RPM*-1;
+
+  public double getRPS(){
+    return flywheel.getSelectedSensorVelocity()/ticks2RPS*-1;
   }
 
   public void resetEncoders(){
@@ -44,7 +45,7 @@ public class BallShooter extends SubsystemBase {
   }
 
   public void setSpeed(double setPoint){
-    flywheel.set(ControlMode.PercentOutput, bang.calculate(getRPM(), setPoint));
+    flywheel.set(ControlMode.PercentOutput, bang.calculate(getRPS(), setPoint));
   }
 
   public void setSpeedSimple(double setPoint){
@@ -56,37 +57,53 @@ public class BallShooter extends SubsystemBase {
   }
 
   public void setSpeedff(double setPoint){
-    flywheel.set(bang.calculate(getRPM(), setPoint) + 0.9 * feedF.calculate(setPoint)/12.0);
+    if(setPoint == 0){
+      flywheel.set(ControlMode.PercentOutput, setPoint);
+    }
+    else{
+      flywheel.setVoltage(bang.calculate(getRPS(), setPoint) + feedF.calculate(setPoint));
+    }
+    
+    }
+    
+  
+
+  public void setOnlyFF(double setPoint){
+    flywheel.setVoltage(feedF.calculate(setPoint)/12.0);
   }
 
-  public boolean atSetpoint(){
-    return bang.atSetpoint();
-  }
 
   // Called every time the scheduler runs while the command is scheduled.
   
   public void periodic() {
     //setSpeedSimple(RobotContainer.getJoy().getY());
-    if(RobotContainer.getJoy().getRawButtonPressed(6)){
-      setSpeedSimple(0);
+    if(RobotContainer.getJoy().getRawButtonPressed(1)){
+      onOrOff =!onOrOff;
+      if(onOrOff){
+        setFeedSimple(0.9);
+      }else{
+        setFeedSimple(0);
+      }
+       }
+    if(RobotContainer.getJoy().getRawButtonPressed(2)){
+      setPoint = 0;
+
     }
-    if(RobotContainer.getJoy().getRawButtonPressed(5)){
-      setFeedSimple(0);
+    if(RobotContainer.getJoy().getRawButtonPressed(3)){
+      
+      setPoint = 97;
+     
     }
     if(RobotContainer.getJoy().getRawButtonPressed(4)){
-      
-      setPoint = 1000;
-      setSpeedff(1000);
-      bang.setSetpoint(setPoint);
+      setPoint = 90;
     }
-    if(RobotContainer.getJoy().getRawButtonPressed(1)){
-      setPoint = 1;
-      setSpeedff(1);
-      bang.setSetpoint(setPoint);
+    if(RobotContainer.getJoy().getRawButtonPressed(5)){
+      setPoint = 85;
     }
-
-    SmartDashboard.putNumber("RPM", getRPM());
-    SmartDashboard.putNumber("bang", bang.calculate(getRPM(), setPoint));
+    setSpeedff(setPoint);
+    SmartDashboard.putNumber("RPS", getRPS());
+    SmartDashboard.putBoolean("setpoint", bang.atSetpoint());
+    SmartDashboard.putNumber("bang", bang.calculate(getRPS(), setPoint));
     SmartDashboard.putNumber("Feed Forward", 0.9 * feedF.calculate(setPoint)/12.0);
   }
 
