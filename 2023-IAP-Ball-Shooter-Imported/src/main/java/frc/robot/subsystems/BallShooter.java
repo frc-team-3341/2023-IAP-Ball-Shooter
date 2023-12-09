@@ -100,6 +100,12 @@ public class BallShooter extends SubsystemBase {
     if(RobotContainer.getJoy().getRawButtonPressed(5)){
       setPoint = 85;
     }
+    if(RobotContainer.getJoy().getRawButtonPressed(8)){
+      setPoint = 50;
+    }
+    if(RobotContainer.getJoy().getRawButtonPressed(10)){
+      setPoint = 10;
+    }
     setSpeedff(setPoint);
     SmartDashboard.putNumber("RPS", getRPS());
     SmartDashboard.putBoolean("setpoint", bang.atSetpoint());
